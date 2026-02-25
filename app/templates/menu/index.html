@@ -1,0 +1,415 @@
+{% extends "base.html" %}
+
+{% block title %}Menu Management - Cafe Manager{% endblock %}
+
+{% block extra_css %}
+<style>
+    .menu-card {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        border: none;
+        overflow: hidden;
+    }
+    .menu-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 12px 40px rgba(111, 78, 55, 0.15);
+    }
+    .menu-card .card-img-top {
+        height: 120px;
+        background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 3rem;
+        color: white;
+    }
+    .menu-card.available .card-img-top {
+        opacity: 1;
+    }
+    .menu-card.unavailable .card-img-top {
+        opacity: 0.6;
+        filter: grayscale(0.5);
+    }
+    .menu-card.unavailable {
+        opacity: 0.7;
+    }
+    .category-badge {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: rgba(255,255,255,0.9);
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--primary-dark);
+    }
+    .price-tag {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--primary-color);
+    }
+    .view-toggle {
+        background: var(--glass-bg);
+        border-radius: var(--radius-md);
+        padding: 4px;
+    }
+    .view-toggle .btn {
+        border: none;
+        padding: 8px 16px;
+    }
+    .view-toggle .btn.active {
+        background: var(--primary-color);
+        color: white;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="page-header mb-4 d-flex justify-content-between align-items-center flex-wrap gap-3">
+        <div>
+            <h1 class="h3 mb-0">
+                <i class="fas fa-utensils me-2" style="color: var(--accent-color);"></i>
+                Menu Management
+            </h1>
+            <p class="text-muted mb-0">Manage your cafe menu items</p>
+        </div>
+        <div class="d-flex gap-2 align-items-center">
+            <div class="view-toggle d-none d-md-flex">
+                <button class="btn btn-sm active" id="gridView" onclick="toggleView('grid')">
+                    <i class="fas fa-th-large"></i>
+                </button>
+                <button class="btn btn-sm" id="listView" onclick="toggleView('list')">
+                    <i class="fas fa-list"></i>
+                </button>
+            </div>
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addMenuItemModal">
+                <i class="fas fa-plus me-2"></i>
+                Add Menu Item
+            </button>
+        </div>
+    </div>
+    
+    <!-- Category Pills -->
+    <div class="mb-4">
+        <div class="d-flex flex-wrap gap-2">
+            <a href="{{ url_for('menu.index') }}" class="btn btn-sm rounded-pill {{ 'text-white' if not selected_category else '' }}" style="{{ 'background: var(--primary-color); border-color: var(--primary-color);' if not selected_category else 'border-color: var(--primary-color); color: var(--primary-color);' }}">
+                All Items
+            </a>
+            {% for cat in categories %}
+            <a href="{{ url_for('menu.index', category=cat) }}" class="btn btn-sm rounded-pill {{ 'text-white' if selected_category == cat else '' }}" style="{{ 'background: var(--primary-color); border-color: var(--primary-color);' if selected_category == cat else 'border-color: var(--primary-color); color: var(--primary-color);' }}">
+                {{ cat }}
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+    
+    <!-- Search Bar -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('menu.index') }}" class="row g-3 align-items-end">
+                <div class="col-md-6">
+                    <div class="input-group input-group-lg">
+                        <span class="input-group-text bg-transparent border-end-0">
+                            <i class="fas fa-search text-muted"></i>
+                        </span>
+                        <input type="text" name="search" class="form-control border-start-0" placeholder="Search menu items..." value="{{ search }}">
+                        {% if selected_category %}
+                        <input type="hidden" name="category" value="{{ selected_category }}">
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="col-md-auto">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="fas fa-search me-1"></i>
+                        Search
+                    </button>
+                    {% if search or selected_category %}
+                    <a href="{{ url_for('menu.index') }}" class="btn btn-outline-secondary btn-lg">
+                        <i class="fas fa-times"></i>
+                    </a>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Menu Items Grid View -->
+    {% if menu_items %}
+        <div class="row g-4 view-section" id="gridViewSection">
+            {% for item in menu_items %}
+            <div class="col-xl-3 col-lg-4 col-md-6">
+                <div class="card menu-card h-100 {{ 'unavailable' if not item.is_available else 'available' }}">
+                    <div class="card-img-top position-relative">
+                        <i class="fas fa-{{ 
+                            'mug-hot' if 'Coffee' in item.category else 
+                            'leaf' if 'Tea' in item.category else 
+                            'bread-slice' if 'Breakfast' in item.category else 
+                            'hamburger' if 'Sandwich' in item.category else 
+                            'cookie' if 'Dessert' in item.category else 
+                            'cookie-bite' if 'Snack' in item.category else 
+                            'glass-water' if 'Beverage' in item.category else 
+                            'utensils' }}"></i>
+                        <span class="category-badge">{{ item.category }}</span>
+                        {% if not item.is_available %}
+                        <div class="position-absolute top-50 start-50 translate-middle">
+                            <span class="badge bg-dark px-3 py-2">Out of Stock</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="card-body">
+                        <h5 class="card-title mb-2">{{ item.name }}</h5>
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <span class="price-tag">₹{{ "%.0f"|format(item.price) }}</span>
+                            <span class="badge bg-{{ 'success' if item.is_available else 'secondary' }}">
+                                {{ 'Available' if item.is_available else 'Out of Stock' }}
+                            </span>
+                        </div>
+                        <div class="d-grid gap-2">
+                            <form method="POST" action="{{ url_for('menu.toggle_availability', id=item.id) }}">
+                                <button type="submit" class="btn btn-outline-{{ 'warning' if item.is_available else 'success' }} btn-sm w-100">
+                                    <i class="fas fa-{{ 'ban' if item.is_available else 'check' }} me-1"></i>
+                                    {{ 'Mark Out of Stock' if item.is_available else 'Mark Available' }}
+                                </button>
+                            </form>
+                            <div class="btn-group">
+                                <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#editMenuItemModal{{ item.id }}">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteMenuItemModal{{ item.id }}">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <!-- Menu Items List View (Hidden by default) -->
+        <div class="card view-section d-none" id="listViewSection">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Item</th>
+                            <th>Category</th>
+                            <th>Price</th>
+                            <th>Status</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in menu_items %}
+                        <tr class="{{ 'text-muted' if not item.is_available }}">
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="menu-item-icon me-3" style="width: 40px; height: 40px; background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white;">
+                                        <i class="fas fa-{{ 
+                                            'mug-hot' if 'Coffee' in item.category else 
+                                            'leaf' if 'Tea' in item.category else 
+                                            'bread-slice' if 'Breakfast' in item.category else 
+                                            'hamburger' if 'Sandwich' in item.category else 
+                                            'cookie' if 'Dessert' in item.category else 
+                                            'cookie-bite' if 'Snack' in item.category else 
+                                            'glass-water' if 'Beverage' in item.category else 
+                                            'utensils' }}"></i>
+                                    </div>
+                                    <span class="fw-semibold">{{ item.name }}</span>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge bg-light text-dark">{{ item.category }}</span>
+                            </td>
+                            <td>
+                                <span class="fw-semibold">₹{{ "%.0f"|format(item.price) }}</span>
+                            </td>
+                            <td>
+                                {% if item.is_available %}
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-check me-1"></i>
+                                        Available
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-secondary">
+                                        <i class="fas fa-times me-1"></i>
+                                        Out of Stock
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                <form method="POST" action="{{ url_for('menu.toggle_availability', id=item.id) }}" class="d-inline">
+                                    <button type="submit" class="btn btn-sm btn-outline-{{ 'warning' if item.is_available else 'success' }}" title="{{ 'Mark Out of Stock' if item.is_available else 'Mark Available' }}">
+                                        <i class="fas fa-{{ 'ban' if item.is_available else 'check' }}"></i>
+                                    </button>
+                                </form>
+                                <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editMenuItemModal{{ item.id }}">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteMenuItemModal{{ item.id }}">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    {% else %}
+        <div class="empty-state text-center py-5">
+            <div class="empty-state-icon mb-3">
+                <i class="fas fa-utensils"></i>
+            </div>
+            <h5 class="text-muted">No menu items found</h5>
+            <p class="text-muted mb-3">Start by adding your first menu item</p>
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addMenuItemModal">
+                <i class="fas fa-plus me-1"></i>
+                Add Menu Item
+            </button>
+        </div>
+    {% endif %}
+</div>
+
+<!-- Add Menu Item Modal -->
+<div class="modal fade" id="addMenuItemModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-plus-circle me-2" style="color: var(--accent-color);"></i>
+                    Add Menu Item
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('menu.create') }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Name <span class="text-danger">*</span></label>
+                        <input type="text" name="name" class="form-control" required placeholder="e.g., Cappuccino">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Category <span class="text-danger">*</span></label>
+                        <input type="text" name="category" class="form-control" required placeholder="e.g., Beverages, Food, Desserts" list="categoryList">
+                        <datalist id="categoryList">
+                            {% for cat in categories %}
+                            <option value="{{ cat }}">
+                            {% endfor %}
+                        </datalist>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Price (₹) <span class="text-danger">*</span></label>
+                        <input type="number" name="price" class="form-control" required step="0.01" min="0.01" placeholder="0.00">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add Item</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Modals -->
+{% for item in menu_items %}
+<div class="modal fade" id="editMenuItemModal{{ item.id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-edit me-2" style="color: var(--accent-color);"></i>
+                    Edit Menu Item
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('menu.edit', id=item.id) }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Name <span class="text-danger">*</span></label>
+                        <input type="text" name="name" class="form-control" required value="{{ item.name }}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Category <span class="text-danger">*</span></label>
+                        <input type="text" name="category" class="form-control" required value="{{ item.category }}" list="categoryList{{ item.id }}">
+                        <datalist id="categoryList{{ item.id }}">
+                            {% for cat in categories %}
+                            <option value="{{ cat }}">
+                            {% endfor %}
+                        </datalist>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Price (₹) <span class="text-danger">*</span></label>
+                        <input type="number" name="price" class="form-control" required step="0.01" min="0.01" value="{{ item.price }}">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Modal -->
+<div class="modal fade" id="deleteMenuItemModal{{ item.id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Confirm Delete
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete <strong>{{ item.name }}</strong>?</p>
+                <p class="text-muted small mb-0">This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form method="POST" action="{{ url_for('menu.delete', id=item.id) }}" class="d-inline">
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+{% block extra_js %}
+<script>
+function toggleView(view) {
+    const gridSection = document.getElementById('gridViewSection');
+    const listSection = document.getElementById('listViewSection');
+    const gridBtn = document.getElementById('gridView');
+    const listBtn = document.getElementById('listView');
+    
+    if (view === 'grid') {
+        gridSection.classList.remove('d-none');
+        listSection.classList.add('d-none');
+        gridBtn.classList.add('active');
+        listBtn.classList.remove('active');
+        localStorage.setItem('menuView', 'grid');
+    } else {
+        gridSection.classList.add('d-none');
+        listSection.classList.remove('d-none');
+        gridBtn.classList.remove('active');
+        listBtn.classList.add('active');
+        localStorage.setItem('menuView', 'list');
+    }
+}
+
+// Restore view preference on page load
+document.addEventListener('DOMContentLoaded', function() {
+    const savedView = localStorage.getItem('menuView');
+    if (savedView === 'list') {
+        toggleView('list');
+    }
+});
+</script>
+{% endblock %}
+{% endblock %}

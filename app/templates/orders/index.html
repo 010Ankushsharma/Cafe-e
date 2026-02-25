@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+
+{% block title %}Orders - Cafe Manager{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="page-header mb-4 d-flex justify-content-between align-items-center flex-wrap gap-3">
+        <div>
+            <h1 class="h3 mb-0">
+                <i class="fas fa-receipt me-2" style="color: var(--accent-color);"></i>
+                Orders
+            </h1>
+            <p class="text-muted mb-0">View and manage customer orders</p>
+        </div>
+        <a href="{{ url_for('orders.create') }}" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>
+            New Order
+        </a>
+    </div>
+    
+    <!-- Filters -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('orders.index') }}" class="row g-3 align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label">Filter by Date</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-calendar"></i></span>
+                        <input type="date" name="date" class="form-control" value="{{ date_filter }}">
+                    </div>
+                </div>
+                <div class="col-md-auto">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-filter me-1"></i>
+                        Filter
+                    </button>
+                    <a href="{{ url_for('orders.index') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-undo me-1"></i>
+                        Reset
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Orders Table -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            {% if orders %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Order #</th>
+                                <th>Name</th>
+                                <th>Items</th>
+                                <th>Total Amount</th>
+                                <th>Date & Time</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for order in orders %}
+                            <tr>
+                                <td>
+                                    <span class="fw-bold" style="color: var(--primary-color);">#{{ order.id }}</span>
+                                </td>
+                                <td>
+                                    {% if order.order_name %}
+                                        <span class="fw-semibold">{{ order.order_name }}</span>
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge" style="background: var(--secondary-color);">{{ order.order_items|length }} items</span>
+                                </td>
+                                <td>
+                                    <span class="fw-bold fs-5">₹{{ "%.2f"|format(order.total_amount) }}</span>
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center text-muted">
+                                        <i class="fas fa-calendar-day me-2"></i>
+                                        {{ order.created_at.strftime('%b %d, %Y') }}
+                                        <span class="mx-2">|</span>
+                                        <i class="fas fa-clock me-2"></i>
+                                        {{ order.created_at.strftime('%H:%M') }}
+                                    </div>
+                                </td>
+                                <td class="text-end">
+                                    <a href="{{ url_for('orders.view', id=order.id) }}" class="btn btn-sm btn-outline-primary" style="border-color: var(--primary-color); color: var(--primary-color);" title="View Details">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteOrderModal{{ order.id }}">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="empty-state text-center py-5">
+                    <div class="empty-state-icon mb-3">
+                        <i class="fas fa-receipt"></i>
+                    </div>
+                    <h5 class="text-muted">No orders found</h5>
+                    <p class="text-muted mb-3">
+                        {% if date_filter %}
+                            No orders for the selected date.
+                        {% else %}
+                            Start by creating your first order.
+                        {% endif %}
+                    </p>
+                    <a href="{{ url_for('orders.create') }}" class="btn btn-primary">
+                        <i class="fas fa-plus me-1"></i>
+                        Create Order
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Delete Modals -->
+{% for order in orders %}
+<div class="modal fade" id="deleteOrderModal{{ order.id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Confirm Delete
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete <strong>Order #{{ order.id }}</strong>?</p>
+                <p class="text-muted small mb-0">This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form method="POST" action="{{ url_for('orders.delete', id=order.id) }}" class="d-inline">
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% endblock %}
