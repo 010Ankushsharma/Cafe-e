@@ -3,10 +3,10 @@ services:
     name: cafe-order-manager
     runtime: python
     buildCommand: pip install -r requirements-prod.txt
-    startCommand: flask db upgrade && gunicorn "app:create_app()"
+    startCommand: flask db upgrade && gunicorn 'app:app'
     envVars:
       - key: PYTHON_VERSION
-        value: 3.11.0
+        value: 3.14.3
       - key: FLASK_ENV
         value: production
       - key: SECRET_KEY
