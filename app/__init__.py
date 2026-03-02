@@ -11,6 +11,9 @@ def create_app(config_name='default'):
     app = Flask(__name__)
     app.config.from_object(config[config_name])
     
+    # Initialize production config if needed
+    config[config_name].init_app(app) if hasattr(config[config_name], 'init_app') else None
+    
     db.init_app(app)
     migrate.init_app(app, db)
     
