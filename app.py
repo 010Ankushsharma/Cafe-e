@@ -2,7 +2,10 @@ import os
 from app import create_app, db
 from app.models import MenuItem, Order, OrderItem
 
-app = create_app(os.getenv('FLASK_ENV', 'development'))
+# Set environment for production
+os.environ.setdefault('FLASK_ENV', 'production')
+
+app = create_app()
 
 
 @app.shell_context_processor
