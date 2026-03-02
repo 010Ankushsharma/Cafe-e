@@ -3,7 +3,7 @@ services:
     name: cafe-order-manager
     runtime: python
     buildCommand: pip install -r requirements-prod.txt
-    startCommand: gunicorn 'app:app'
+    startCommand: gunicorn 'wsgi:application'
     envVars:
       - key: PYTHON_VERSION
         value: 3.14.3
