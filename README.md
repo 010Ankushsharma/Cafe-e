@@ -74,7 +74,7 @@ A production-ready Cafe Order Management System built with Flask, featuring a wa
 
 2. **Create Blueprint on Render**
    - Go to [Render Dashboard](https://dashboard.render.com)
-   - Click "New +" → "Blueprint"
+   - Click "New +" → "Blueprint""
    - Connect your GitHub repository
    - Render will automatically detect `render.yaml`
 
