@@ -12,7 +12,7 @@ A production-ready Cafe Order Management System built with Flask, featuring a wa
 - **Admin Dashboard** - Overview of cafe performance with statistics
 - **Menu Management** - CRUD operations for menu items with category filtering
 - **Order Management** - Create orders with multiple items, auto-calculate totals
-- **Coffee Theme UI** - Warm, cozy brown color palette inspired by coffee
+- **Coffee Theme UI** - Warm, cozy brown color palette inspired by coffees
 - **Responsive Design** - Works on desktop and mobile devices
 - **PostgreSQL Database** - Production-ready database support
 
